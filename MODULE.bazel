@@ -1,4 +1,7 @@
-module(name = "jsonnet_go", version = "0.0.0")
+module(
+    name = "jsonnet_go",
+    version = "0.0.0",
+)
 
 bazel_dep(name = "gazelle", version = "0.37.0", repo_name = "bazel_gazelle")
 bazel_dep(name = "jsonnet", version = "0.20.0", repo_name = "cpp_jsonnet")
@@ -11,4 +14,5 @@ use_repo(
     "com_github_fatih_color",
     "com_github_sergi_go_diff",
     "io_k8s_sigs_yaml",
+    "org_golang_x_crypto",
 )

@@ -279,9 +279,16 @@ type astMakeArrayElement struct {
 }
 
 func builtinMakeArray(i *interpreter, szv, funcv value) (value, error) {
+	//fmt.Printf("Remaining: %v\n", i.allocations)
 	sz, err := i.getInt(szv)
 	if err != nil {
 		return nil, err
+	}
+	if (i.allocations > 0){
+	i.allocations -= sz
+	if (i.allocations <= 0){
+		return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+	}
 	}
 	fun, err := i.getFunction(funcv)
 	if err != nil {
@@ -303,6 +310,8 @@ func builtinMakeArray(i *interpreter, szv, funcv value) (value, error) {
 }
 
 func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
+
+	//fmt.Printf("Remaining: %v\n", i.allocations)
 	fun, err := i.getFunction(funcv)
 	if err != nil {
 		return nil, err
@@ -310,6 +319,15 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 	switch arrv := arrv.(type) {
 	case *valueArray:
 		num := arrv.length()
+
+		if (i.allocations > 0){
+		i.allocations -= num
+		if (i.allocations <= 0){
+			return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+		}
+		}
+
+
 		// Start with capacity of the original array.
 		// This may spare us a few reallocations.
 		// TODO(sbarzowski) verify that it actually helps
@@ -328,6 +346,14 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 		return makeValueArray(elems), nil
 	case valueString:
 		var str strings.Builder
+		num := arrv.length()
+		if (i.allocations > 0){
+			i.allocations -= num
+			if (i.allocations <= 0){
+				return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+			}
+		}
+
 		for _, elem := range arrv.getRunes() {
 			returnedValue, err := fun.call(i, args(readyThunk(makeValueString(string(elem)))))
 			if err != nil {
@@ -346,6 +372,7 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 }
 
 func joinArrays(i *interpreter, sep *valueArray, arr *valueArray) (value, error) {
+	//fmt.Println("joinArrays")
 	result := make([]*cachedThunk, 0, arr.length())
 	first := true
 	for _, elem := range arr.elements {
@@ -472,6 +499,7 @@ func builtinFoldr(i *interpreter, funcv, arrv, initv value) (value, error) {
 }
 
 func builtinReverse(i *interpreter, arrv value) (value, error) {
+	//fmt.Println("Reverse")
 	arr, err := i.getArray(arrv)
 	if err != nil {
 		return nil, err
@@ -489,6 +517,8 @@ func builtinReverse(i *interpreter, arrv value) (value, error) {
 }
 
 func builtinFilter(i *interpreter, funcv, arrv value) (value, error) {
+	
+	//fmt.Println("Filter")
 	arr, err := i.getArray(arrv)
 	if err != nil {
 		return nil, err
@@ -661,6 +691,7 @@ func (d *sortData) Sort() (err error) {
 }
 
 func builtinSort(i *interpreter, arguments []value) (value, error) {
+	//fmt.Println("Sort")
 	arrv := arguments[0]
 	keyFv := arguments[1]
 
@@ -694,6 +725,8 @@ func builtinSort(i *interpreter, arguments []value) (value, error) {
 }
 
 func builtinRange(i *interpreter, fromv, tov value) (value, error) {
+	
+	//fmt.Println("Range")
 	from, err := i.getInt(fromv)
 	if err != nil {
 		return nil, err
@@ -702,6 +735,15 @@ func builtinRange(i *interpreter, fromv, tov value) (value, error) {
 	if err != nil {
 		return nil, err
 	}
+	num := to-from+1
+
+	if (i.allocations > 0){
+	i.allocations -= num
+	if (i.allocations <= 0){
+		return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+	}
+	}
+
 	elems := make([]*cachedThunk, to-from+1)
 	for i := from; i <= to; i++ {
 		elems[i-from] = readyThunk(intToValue(i))

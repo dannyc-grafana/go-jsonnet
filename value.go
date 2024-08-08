@@ -311,6 +311,7 @@ func makeValueArray(elements []*cachedThunk) *valueArray {
 		arrayElems = make([]*cachedThunk, len(elements))
 		copy(arrayElems, elements)
 	}
+	//fmt.Printf("array: %+v\n", arrayElems)
 	return &valueArray{
 		elements: arrayElems,
 	}

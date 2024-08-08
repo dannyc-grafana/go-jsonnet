@@ -279,7 +279,8 @@ type interpreter struct {
 	// 1) Keeping environment (object we're in, variables)
 	// 2) Diagnostic information in case of failure
 	stack callStack
-
+	steps int
+	allocations int
 	evalHook EvalHook
 }
 
@@ -308,6 +309,13 @@ func (i *interpreter) newCall(env environment, trimmable bool) error {
 }
 
 func (i *interpreter) evaluate(a ast.Node, tc tailCallStatus) (value, error) {
+	if i.steps > 0 {
+		i.steps = i.steps - 1
+		if i.steps == 0 {
+		return nil, makeRuntimeError("Exhausted execution step budget!", i.getCurrentStackTrace()) 
+		}
+	}
+
 	i.evalHook.pre(i, a)
 	v, err := i.rawevaluate(a, tc)
 	i.evalHook.post(i, a, v, err)
@@ -1273,9 +1281,11 @@ func buildObject(hide ast.ObjectFieldHide, fields map[string]value) *valueObject
 	return makeValueSimpleObject(bindingFrame{}, fieldMap, nil, nil)
 }
 
-func buildInterpreter(ext vmExtMap, nativeFuncs map[string]*NativeFunction, maxStack int, ic *importCache, traceOut io.Writer, evalHook EvalHook) (*interpreter, error) {
+func buildInterpreter(ext vmExtMap, nativeFuncs map[string]*NativeFunction, maxStack int, maxSteps int, maxAllocations int , ic *importCache, traceOut io.Writer, evalHook EvalHook) (*interpreter, error) {
 	i := interpreter{
 		stack:       makeCallStack(maxStack),
+		steps:	     maxSteps,
+		allocations: maxAllocations,
 		importCache: ic,
 		traceOut:    traceOut,
 		nativeFuncs: nativeFuncs,
@@ -1352,9 +1362,9 @@ func evaluateAux(i *interpreter, node ast.Node, tla vmExtMap) (value, error) {
 
 // TODO(sbarzowski) this function takes far too many arguments - build interpreter in vm instead
 func evaluate(node ast.Node, ext vmExtMap, tla vmExtMap, nativeFuncs map[string]*NativeFunction,
-	maxStack int, ic *importCache, traceOut io.Writer, stringOutputMode bool, evalHook EvalHook) (string, error) {
+	maxStack int, maxSteps int, maxAllocations int, ic *importCache, traceOut io.Writer, stringOutputMode bool, evalHook EvalHook) (string, error) {
 
-	i, err := buildInterpreter(ext, nativeFuncs, maxStack, ic, traceOut, evalHook)
+	i, err := buildInterpreter(ext, nativeFuncs, maxStack, maxSteps, maxAllocations, ic, traceOut, evalHook)
 	if err != nil {
 		return "", err
 	}
@@ -1381,9 +1391,9 @@ func evaluate(node ast.Node, ext vmExtMap, tla vmExtMap, nativeFuncs map[string]
 
 // TODO(sbarzowski) this function takes far too many arguments - build interpreter in vm instead
 func evaluateMulti(node ast.Node, ext vmExtMap, tla vmExtMap, nativeFuncs map[string]*NativeFunction,
-	maxStack int, ic *importCache, traceOut io.Writer, stringOutputMode bool, evalHook EvalHook) (map[string]string, error) {
+	maxStack int, maxSteps int, maxAllocations int, ic *importCache, traceOut io.Writer, stringOutputMode bool, evalHook EvalHook) (map[string]string, error) {
 
-	i, err := buildInterpreter(ext, nativeFuncs, maxStack, ic, traceOut, evalHook)
+	i, err := buildInterpreter(ext, nativeFuncs, maxStack, maxSteps, maxAllocations, ic, traceOut, evalHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1401,9 +1411,9 @@ func evaluateMulti(node ast.Node, ext vmExtMap, tla vmExtMap, nativeFuncs map[st
 
 // TODO(sbarzowski) this function takes far too many arguments - build interpreter in vm instead
 func evaluateStream(node ast.Node, ext vmExtMap, tla vmExtMap, nativeFuncs map[string]*NativeFunction,
-	maxStack int, ic *importCache, traceOut io.Writer, evalHook EvalHook) ([]string, error) {
+	maxStack int, maxSteps int, maxAllocations int,ic *importCache, traceOut io.Writer, evalHook EvalHook) ([]string, error) {
 
-	i, err := buildInterpreter(ext, nativeFuncs, maxStack, ic, traceOut, evalHook)
+	i, err := buildInterpreter(ext, nativeFuncs, maxStack, maxSteps, maxAllocations, ic, traceOut, evalHook)
 	if err != nil {
 		return nil, err
 	}

@@ -37,51 +37,52 @@ import (
 	"github.com/google/go-jsonnet/ast"
 	"golang.org/x/crypto/sha3"
 )
-func wrapConcatStrings(i* interpreter, left, right valueString) (valueString, error){
+
+func wrapConcatStrings(i *interpreter, left, right valueString) (valueString, error) {
 	cost := left.length() + right.length()
 	_, err := i.checkMemoryCost(cost)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
-	return concatStrings(left,right), nil
+	return concatStrings(left, right), nil
 }
 
-func wrapConcatArrays(i* interpreter, left, right *valueArray) (*valueArray, error){
+func wrapConcatArrays(i *interpreter, left, right *valueArray) (*valueArray, error) {
 	cost := left.length() + right.length()
 	_, err := i.checkMemoryCost(cost)
-	if err != nil{
-		return nil,err
-	}
-	return concatArrays(left,right), nil
-}
-
-func wrapMakeValueNumber(i* interpreter, v float64) (*valueNumber, error){
-	_,err := i.checkMemoryCost(1)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
-	return makeValueNumber(v),nil
+	return concatArrays(left, right), nil
 }
 
-func wrapMakeValueString(i* interpreter, s string) (valueString, error){
-	_,err := i.checkMemoryCost(len(s))
-	if err != nil{
+func wrapMakeValueNumber(i *interpreter, v float64) (*valueNumber, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil {
 		return nil, err
 	}
-	return makeValueString(s),nil
+	return makeValueNumber(v), nil
 }
 
-func wrapMakeValueBoolean(i* interpreter, b bool) (*valueBoolean, error){
-	_,err := i.checkMemoryCost(1)
-	if err != nil{
+func wrapMakeValueString(i *interpreter, s string) (valueString, error) {
+	_, err := i.checkMemoryCost(len(s))
+	if err != nil {
+		return nil, err
+	}
+	return makeValueString(s), nil
+}
+
+func wrapMakeValueBoolean(i *interpreter, b bool) (*valueBoolean, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil {
 		return nil, err
 	}
 	return makeValueBoolean(b), nil
 }
 
-func wrapMakeValueNull(i* interpreter) (*valueNull, error){
-	_,err := i.checkMemoryCost(1)
-	if err != nil{
+func wrapMakeValueNull(i *interpreter) (*valueNull, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil {
 		return nil, err
 	}
 	return makeValueNull(), nil
@@ -95,7 +96,7 @@ func builtinPlus(i *interpreter, x, y value) (value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return wrapConcatStrings(i,left.(valueString), right)
+		return wrapConcatStrings(i, left.(valueString), right)
 
 	}
 	switch left := x.(type) {
@@ -232,8 +233,8 @@ func arrayCmp(i *interpreter, x, y *valueArray) (int, error) {
 
 func builtinLess(i *interpreter, x, y value) (value, error) {
 	_, err := i.checkMemoryCost(1)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
@@ -244,8 +245,8 @@ func builtinLess(i *interpreter, x, y value) (value, error) {
 
 func builtinGreater(i *interpreter, x, y value) (value, error) {
 	_, err := i.checkMemoryCost(1)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
@@ -256,8 +257,8 @@ func builtinGreater(i *interpreter, x, y value) (value, error) {
 
 func builtinGreaterEq(i *interpreter, x, y value) (value, error) {
 	_, err := i.checkMemoryCost(1)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
@@ -268,8 +269,8 @@ func builtinGreaterEq(i *interpreter, x, y value) (value, error) {
 
 func builtinLessEq(i *interpreter, x, y value) (value, error) {
 	_, err := i.checkMemoryCost(1)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
@@ -280,8 +281,8 @@ func builtinLessEq(i *interpreter, x, y value) (value, error) {
 
 func builtinLength(i *interpreter, x value) (value, error) {
 	_, err := i.checkMemoryCost(1)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	var num int
 	switch x := x.(type) {
@@ -415,7 +416,6 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 			return nil, err
 		}
 
-
 		for _, elem := range arrv.getRunes() {
 			returnedValue, err := fun.call(i, args(readyThunk(makeValueString(string(elem)))))
 			if err != nil {
@@ -439,7 +439,6 @@ func joinArrays(i *interpreter, sep *valueArray, arr *valueArray) (value, error)
 	if err != nil {
 		return nil, err
 	}
-
 
 	result := make([]*cachedThunk, 0, arr.length())
 	first := true
@@ -470,7 +469,6 @@ func joinStrings(i *interpreter, sep valueString, arr *valueArray) (value, error
 	if err != nil {
 		return nil, err
 	}
-
 
 	result := make([]rune, 0, arr.length())
 	first := true
@@ -593,7 +591,7 @@ func builtinReverse(i *interpreter, arrv value) (value, error) {
 }
 
 func builtinFilter(i *interpreter, funcv, arrv value) (value, error) {
-	
+
 	//fmt.Println("Filter")
 	arr, err := i.getArray(arrv)
 	if err != nil {
@@ -801,7 +799,7 @@ func builtinSort(i *interpreter, arguments []value) (value, error) {
 }
 
 func builtinRange(i *interpreter, fromv, tov value) (value, error) {
-	
+
 	//fmt.Println("Range")
 	from, err := i.getInt(fromv)
 	if err != nil {
@@ -811,12 +809,12 @@ func builtinRange(i *interpreter, fromv, tov value) (value, error) {
 	if err != nil {
 		return nil, err
 	}
-	num := to-from+1
+	num := to - from + 1
 
 	_, err = i.checkMemoryCost(num)
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
 	elems := make([]*cachedThunk, to-from+1)
 	for i := from; i <= to; i++ {

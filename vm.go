@@ -39,7 +39,7 @@ import (
 type VM struct { //nolint:govet
 	MaxStack       int
 	MaxSteps       int
-	MaxAllocations       int
+	MaxAllocations int
 	ext            vmExtMap
 	tla            vmExtMap
 	nativeFuncs    map[string]*NativeFunction
@@ -77,7 +77,7 @@ func MakeVM() *VM {
 	defaultImporter := &FileImporter{}
 	return &VM{
 		MaxStack:       500,
-		MaxSteps:	-1,
+		MaxSteps:       -1,
 		MaxAllocations: -1,
 		ext:            make(vmExtMap),
 		tla:            make(vmExtMap),
@@ -92,9 +92,6 @@ func MakeVM() *VM {
 		},
 	}
 }
-
-
-
 
 // Fully flush cache. This should be executed when we are no longer sure that the source files
 // didn't change, for example when the importer changed.
@@ -199,7 +196,7 @@ func (vm *VM) Evaluate(node ast.Node) (val string, err error) {
 			err = fmt.Errorf("(CRASH) %v\n%s", r, debug.Stack())
 		}
 	}()
-	return evaluate(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack,vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
+	return evaluate(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
 }
 
 // EvaluateStream evaluates a Jsonnet program given by an Abstract Syntax Tree
@@ -222,7 +219,7 @@ func (vm *VM) EvaluateMulti(node ast.Node) (output map[string]string, err error)
 			err = fmt.Errorf("(CRASH) %v\n%s", r, debug.Stack())
 		}
 	}()
-	return evaluateMulti(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations,vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
+	return evaluateMulti(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
 }
 
 func (vm *VM) evaluateSnippet(diagnosticFileName ast.DiagnosticFileName, filename string, snippet string, kind evalKind) (output interface{}, err error) {
@@ -237,11 +234,11 @@ func (vm *VM) evaluateSnippet(diagnosticFileName ast.DiagnosticFileName, filenam
 	}
 	switch kind {
 	case evalKindRegular:
-		output, err = evaluate(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations,vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
+		output, err = evaluate(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
 	case evalKindMulti:
-		output, err = evaluateMulti(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations,vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
+		output, err = evaluateMulti(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.StringOutput, vm.EvalHook)
 	case evalKindStream:
-		output, err = evaluateStream(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations,vm.importCache, vm.traceOut, vm.EvalHook)
+		output, err = evaluateStream(node, vm.ext, vm.tla, vm.nativeFuncs, vm.MaxStack, vm.MaxSteps, vm.MaxAllocations, vm.importCache, vm.traceOut, vm.EvalHook)
 	}
 	if err != nil {
 		return "", err

@@ -37,6 +37,55 @@ import (
 	"github.com/google/go-jsonnet/ast"
 	"golang.org/x/crypto/sha3"
 )
+func wrapConcatStrings(i* interpreter, left, right valueString) (valueString, error){
+	cost := left.length() + right.length()
+	_, err := i.checkMemoryCost(cost)
+	if err != nil{
+		return nil,err
+	}
+	return concatStrings(left,right), nil
+}
+
+func wrapConcatArrays(i* interpreter, left, right *valueArray) (*valueArray, error){
+	cost := left.length() + right.length()
+	_, err := i.checkMemoryCost(cost)
+	if err != nil{
+		return nil,err
+	}
+	return concatArrays(left,right), nil
+}
+
+func wrapMakeValueNumber(i* interpreter, v float64) (*valueNumber, error){
+	_,err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil, err
+	}
+	return makeValueNumber(v),nil
+}
+
+func wrapMakeValueString(i* interpreter, s string) (valueString, error){
+	_,err := i.checkMemoryCost(len(s))
+	if err != nil{
+		return nil, err
+	}
+	return makeValueString(s),nil
+}
+
+func wrapMakeValueBoolean(i* interpreter, b bool) (*valueBoolean, error){
+	_,err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil, err
+	}
+	return makeValueBoolean(b), nil
+}
+
+func wrapMakeValueNull(i* interpreter) (*valueNull, error){
+	_,err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil, err
+	}
+	return makeValueNull(), nil
+}
 
 func builtinPlus(i *interpreter, x, y value) (value, error) {
 	// TODO(sbarzowski) perhaps a more elegant way to dispatch
@@ -46,7 +95,7 @@ func builtinPlus(i *interpreter, x, y value) (value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return concatStrings(left.(valueString), right), nil
+		return wrapConcatStrings(i,left.(valueString), right)
 
 	}
 	switch left := x.(type) {
@@ -61,7 +110,7 @@ func builtinPlus(i *interpreter, x, y value) (value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return concatStrings(left, right.(valueString)), nil
+		return wrapConcatStrings(i, left, right.(valueString))
 	case *valueObject:
 		switch right := y.(type) {
 		case *valueObject:
@@ -75,7 +124,7 @@ func builtinPlus(i *interpreter, x, y value) (value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return concatArrays(left, right), nil
+		return wrapConcatArrays(i, left, right)
 	default:
 		return nil, i.typeErrorGeneral(x)
 	}
@@ -182,6 +231,10 @@ func arrayCmp(i *interpreter, x, y *valueArray) (int, error) {
 }
 
 func builtinLess(i *interpreter, x, y value) (value, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil,err
+	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
 		return nil, err
@@ -190,6 +243,10 @@ func builtinLess(i *interpreter, x, y value) (value, error) {
 }
 
 func builtinGreater(i *interpreter, x, y value) (value, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil,err
+	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
 		return nil, err
@@ -198,6 +255,10 @@ func builtinGreater(i *interpreter, x, y value) (value, error) {
 }
 
 func builtinGreaterEq(i *interpreter, x, y value) (value, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil,err
+	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
 		return nil, err
@@ -206,6 +267,10 @@ func builtinGreaterEq(i *interpreter, x, y value) (value, error) {
 }
 
 func builtinLessEq(i *interpreter, x, y value) (value, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil,err
+	}
 	r, err := valueCmp(i, x, y)
 	if err != nil {
 		return nil, err
@@ -214,6 +279,10 @@ func builtinLessEq(i *interpreter, x, y value) (value, error) {
 }
 
 func builtinLength(i *interpreter, x value) (value, error) {
+	_, err := i.checkMemoryCost(1)
+	if err != nil{
+		return nil,err
+	}
 	var num int
 	switch x := x.(type) {
 	case *valueObject:
@@ -284,11 +353,9 @@ func builtinMakeArray(i *interpreter, szv, funcv value) (value, error) {
 	if err != nil {
 		return nil, err
 	}
-	if (i.allocations > 0){
-	i.allocations -= sz
-	if (i.allocations <= 0){
-		return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
-	}
+	_, err = i.checkMemoryCost(sz)
+	if err != nil {
+		return nil, err
 	}
 	fun, err := i.getFunction(funcv)
 	if err != nil {
@@ -319,14 +386,10 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 	switch arrv := arrv.(type) {
 	case *valueArray:
 		num := arrv.length()
-
-		if (i.allocations > 0){
-		i.allocations -= num
-		if (i.allocations <= 0){
-			return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+		_, err := i.checkMemoryCost(num)
+		if err != nil {
+			return nil, err
 		}
-		}
-
 
 		// Start with capacity of the original array.
 		// This may spare us a few reallocations.
@@ -347,12 +410,11 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 	case valueString:
 		var str strings.Builder
 		num := arrv.length()
-		if (i.allocations > 0){
-			i.allocations -= num
-			if (i.allocations <= 0){
-				return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
-			}
+		_, err := i.checkMemoryCost(num)
+		if err != nil {
+			return nil, err
 		}
+
 
 		for _, elem := range arrv.getRunes() {
 			returnedValue, err := fun.call(i, args(readyThunk(makeValueString(string(elem)))))
@@ -373,6 +435,12 @@ func builtinFlatMap(i *interpreter, funcv, arrv value) (value, error) {
 
 func joinArrays(i *interpreter, sep *valueArray, arr *valueArray) (value, error) {
 	//fmt.Println("joinArrays")
+	_, err := i.checkMemoryCost(arr.length() * sep.length())
+	if err != nil {
+		return nil, err
+	}
+
+
 	result := make([]*cachedThunk, 0, arr.length())
 	first := true
 	for _, elem := range arr.elements {
@@ -398,6 +466,12 @@ func joinArrays(i *interpreter, sep *valueArray, arr *valueArray) (value, error)
 }
 
 func joinStrings(i *interpreter, sep valueString, arr *valueArray) (value, error) {
+	_, err := i.checkMemoryCost(arr.length() * sep.length())
+	if err != nil {
+		return nil, err
+	}
+
+
 	result := make([]rune, 0, arr.length())
 	first := true
 	for _, elem := range arr.elements {
@@ -437,6 +511,7 @@ func builtinJoin(i *interpreter, sep, arrv value) (value, error) {
 }
 
 func builtinFoldl(i *interpreter, funcv, arrv, initv value) (value, error) {
+	// Does not require memory budget calculations because whatever it constructs will hit the memory budget call instead.
 	fun, err := i.getFunction(funcv)
 	if err != nil {
 		return nil, err
@@ -468,6 +543,7 @@ func builtinFoldl(i *interpreter, funcv, arrv, initv value) (value, error) {
 }
 
 func builtinFoldr(i *interpreter, funcv, arrv, initv value) (value, error) {
+	// Does not require memory budget calculations because whatever it constructs will hit the memory budget call instead.
 	fun, err := i.getFunction(funcv)
 	if err != nil {
 		return nil, err
@@ -737,12 +813,10 @@ func builtinRange(i *interpreter, fromv, tov value) (value, error) {
 	}
 	num := to-from+1
 
-	if (i.allocations > 0){
-	i.allocations -= num
-	if (i.allocations <= 0){
-		return nil, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
-	}
-	}
+	_, err = i.checkMemoryCost(num)
+		if err != nil {
+			return nil, err
+		}
 
 	elems := make([]*cachedThunk, to-from+1)
 	for i := from; i <= to; i++ {

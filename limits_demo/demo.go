@@ -66,7 +66,9 @@ func main() {
 	vm.MaxSteps = 400 // During testing, it looks like setting up the environment and evaluating std costs 105 steps.
 	vm.MaxAllocations = 400 // Change this around while changing how big the range allocated in the program is to see it work!
 	snippet := `{
-		data: std.range(1,300)
+		data: std.range(1,300),
+		data2: std.range(1,300),
+		data3: std.range(1,300)
 	}`
 
 	jsonStr, err := vm.EvaluateAnonymousSnippet("example1.jsonnet", snippet)	

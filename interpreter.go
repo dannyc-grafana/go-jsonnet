@@ -299,6 +299,28 @@ func addBindings(a, b bindingFrame) bindingFrame {
 	return result
 }
 
+func (i *interpreter) checkMemoryCost(cost int) (int, error) {
+if (i.allocations > 0){
+		i.allocations -= cost
+		if (i.allocations <= 0){
+			return i.allocations, makeRuntimeError("Exceeded array memory budget!", i.getCurrentStackTrace())	
+		}
+		}
+		return i.allocations, nil
+
+
+}
+func (i *interpreter) checkStepCost(cost int) (int, error) {
+if (i.steps > 0){
+		i.steps -= cost
+		if (i.steps <= 0){
+			return i.steps, makeRuntimeError("Exceeded AST node execution budget!", i.getCurrentStackTrace())	
+		}
+		}
+		return i.steps, nil
+
+
+}
 func (i *interpreter) newCall(env environment, trimmable bool) error {
 	s := &i.stack
 	if s.calls >= s.limit {
